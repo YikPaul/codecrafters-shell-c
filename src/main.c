@@ -3,14 +3,17 @@
 #include <string.h>
 
 int main(int argc, char *argv[]) {
-  char command[1024];
-  printf("$ ");
-  // printf("Enter you command: \n");
-  fgets(command, sizeof(command), stdin);
+  while (1) {
 
-  command[strlen(command) - 1] = '\0';
+    char command[1024];
+    printf("$ ");
+    // printf("Enter you command: \n");
+    fgets(command, sizeof(command), stdin);
 
-  printf("%s: command not found\n", command);
+    command[strlen(command) - 1] = '\0';
+
+    printf("%s: command not found\n", command);
+  }
   setbuf(stdout, NULL);
 
   return 0;
