@@ -17,9 +17,10 @@ int main(int argc, char *argv[]) {
       break;
     } else if (strcmp(command, "echo ") == 0) {
       printf("%s\n", command + 5);
-    } else
+    } else {
 
       printf("%s: command not found\n", command);
+    }
   }
 
   return 0;
