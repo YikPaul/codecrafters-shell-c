@@ -15,10 +15,11 @@ int main(int argc, char *argv[]) {
     command[strlen(command) - 1] = '\0';
     if (strcmp(command, "exit") == 0) {
       break;
-    } else if (strcmp(command, "echo ", 5) == 0) {
+    } else if (strcmp(command, "echo ") == 0) {
       printf("%s\n", command + 5);
-    }
-    printf("%s: command not found\n", command);
+    } else
+
+      printf("%s: command not found\n", command);
   }
 
   return 0;
