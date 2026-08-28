@@ -16,6 +16,7 @@ int main(int argc, char *argv[]) {
       break;
     } else if (strncmp(command, "echo ", 5) == 0) {
       printf("%s\n", command + 5);
+      continue;
     }
     if (strncmp(command, "type ", 5) == 0) {
       if (strcmp(command + 5, "echo") == 0 ||
