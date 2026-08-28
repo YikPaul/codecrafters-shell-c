@@ -19,7 +19,8 @@ int main(int argc, char *argv[]) {
     }
     if (strncmp(command, "type ", 5) == 0) {
       if (strcmp(command + 5, "echo") == 0 ||
-          strcmp(command + 5, "exit") == 0) {
+          strcmp(command + 5, "exit") == 0 ||
+          strcmp(command + 5, "type") == 0) {
         printf("%s is a shell builtin\n", command + 5);
       } else {
         printf("%s: command not found\n", command + 5);
