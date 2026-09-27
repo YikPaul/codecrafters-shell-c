@@ -3,8 +3,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <sys/wait.h>
-
 void locate_x(char *command) {
 
   char *PATH = strdup(getenv("PATH"));
@@ -47,13 +45,10 @@ int main(int argc, char *argv[]) {
       } else {
         locate_x(command + 5);
       }
-
-    } else {
-      int status = system(command);
-
-      if (WIFEXITED(status) && WEXITSTATUS(status) == 127) {
-        printf("%s: command not found\n", command);
-      }
+    }
+    {
+      system(command);
+      printf("%s: command not found\n", command);
     }
   }
 
