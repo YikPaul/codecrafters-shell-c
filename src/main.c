@@ -3,26 +3,23 @@
 #include <string.h>
 #include <unistd.h>
 
-void locate_x(char *name) {
+void locate_x(char *command) {
 
-  char *path_env = getenv("PATH");
-  if (path_env == NULL) {
-    printf("%s: not found\n", name);
-    return;
-  }
-
-  char *PATH = strdup(path_env);
+  char *PATH = strdup(getenv("PATH"));
   for (char *p = strtok(PATH, ":"); p != NULL; p = strtok(NULL, ":")) {
-    char fp[1024];
-    snprintf(fp, sizeof(fp), "%s/%s", p, name);
+    char fp[1028];
+    sprintf(fp, "%s/%s", p, command);
     if (access(fp, X_OK) == 0) {
-      printf("%s is %s\n", name, fp);
-      free(PATH);
+      printf("%s is %s\n", command, fp);
       return;
     }
   }
-  free(PATH);
-  printf("%s: not found\n", name);
+  printf("%s: not found\n", command);
+}
+void execute(char *command) {
+  if (access(command, X_OK) == 0) {
+    system(command);
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -33,18 +30,16 @@ int main(int argc, char *argv[]) {
 
     char command[1024];
     printf("$ ");
-    if (fgets(command, sizeof(command), stdin) == NULL) {
-      break;
-    }
+    fgets(command, sizeof(command), stdin);
 
-    command[strcspn(command, "\n")] = '\0';
+    command[strlen(command) - 1] = '\0';
     if (strcmp(command, "exit") == 0) {
       break;
     } else if (strncmp(command, "echo ", 5) == 0) {
       printf("%s\n", command + 5);
       continue;
     } else if (strcmp(command, "cls") == 0 || strcmp(command, "clear") == 0) {
-      printf("\033[H\033[2J");
+      printf("/033[H/033/2J");
     }
     if (strncmp(command, "type ", 5) == 0) {
       if (strcmp(command + 5, "echo") == 0 ||
@@ -56,6 +51,7 @@ int main(int argc, char *argv[]) {
         locate_x(command + 5);
       }
     } else {
+      execute(command);
       printf("%s: command not found\n", command);
     }
   }
