@@ -45,9 +45,13 @@ int main(int argc, char *argv[]) {
       } else {
         locate_x(command + 5);
       }
+
     } else {
-      system(command);
-      if (system(command) != 0) {
+      int status = system(command);
+
+      if (status == -1) {
+        perror("system");
+      } else if (WIFEXITED(status) && WEXITSTATUS(status) == 127) {
         printf("%s: command not found\n", command);
       }
     }
