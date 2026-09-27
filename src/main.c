@@ -48,8 +48,6 @@ int main(int argc, char *argv[]) {
     } else {
       system(command);
     }
-
-    printf("%s: command not found\n", command);
   }
 
   return 0;
