@@ -4,6 +4,7 @@
 int main(int argc, char *argv[]) {
   // Flush after every printf
   setbuf(stdout, NULL);
+  printf("This is just a demo project");
   printf("$ ");
   // Wait for user input
   char input[100];
