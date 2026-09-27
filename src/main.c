@@ -46,11 +46,8 @@ int main(int argc, char *argv[]) {
         locate_x(command + 5);
       }
     } else {
-      if (access(command, X_OK) == 0) {
-        system(command);
-      } else {
-        printf("%s: command not found\n", command);
-      }
+      system(command);
+      printf("%s: command not found\n", command);
     }
   }
 
