@@ -45,10 +45,8 @@ int main(int argc, char *argv[]) {
       } else {
         locate_x(command + 5);
       }
-    }
-    {
+    } else {
       system(command);
-      printf("%s: command not found\n", command);
     }
   }
 
