@@ -49,9 +49,7 @@ int main(int argc, char *argv[]) {
     } else {
       int status = system(command);
 
-      if (status == -1) {
-        perror("system");
-      } else if (WIFEXITED(status) && WEXITSTATUS(status) == 127) {
+      if (WIFEXITED(status) && WEXITSTATUS(status) == 127) {
         printf("%s: command not found\n", command);
       }
     }
