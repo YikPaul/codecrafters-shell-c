@@ -3,6 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <sys/wait.h>
+
 void locate_x(char *command) {
 
   char *PATH = strdup(getenv("PATH"));
