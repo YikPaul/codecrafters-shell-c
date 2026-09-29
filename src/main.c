@@ -46,10 +46,7 @@ int main(int argc, char *argv[]) {
       }
     } else {
       system(command);
-      if (!system(command)) {
-
-        printf("%s: command not found\n", command);
-      }
+      printf("%s: command not found\n", command);
     }
   }
 
