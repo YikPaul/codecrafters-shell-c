@@ -14,8 +14,8 @@ void locate_x(char *command) {
       return;
     }
   }
+  printf("%s: not found\n", command);
 }
-
 int main(int argc, char *argv[]) {
 
   setbuf(stdout, NULL);
