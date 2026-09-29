@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
       printf("%s\n", command + 5);
       continue;
     } else if (strcmp(command, "cls") == 0 || strcmp(command, "clear") == 0) {
-      printf("/033[H/033/2J");
+      printf("\033[2J\033[H");
     }
     if (strncmp(command, "type ", 5) == 0) {
       if (strcmp(command + 5, "echo") == 0 ||
