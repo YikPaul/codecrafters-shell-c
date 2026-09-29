@@ -50,7 +50,9 @@ int main(int argc, char *argv[]) {
       /*      int status = system(command);
 
             if (status == 127) {
-              printf("%s: command not found\n", command);*/
+              printf("%s: command not found\n", command);
+}
+*/
       pid_t pid = fork();
 
       if (pid == 0) {
@@ -65,7 +67,6 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-}
 
-return 0;
+  return 0;
 }
