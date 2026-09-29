@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 void locate_x(char *command) {
@@ -45,13 +47,25 @@ int main(int argc, char *argv[]) {
         locate_x(command + 5);
       }
     } else {
-      int status = system(command);
+      /*      int status = system(command);
 
-      if (status == 127) {
+            if (status == 127) {
+              printf("%s: command not found\n", command);*/
+      pid_t pid = fork();
+
+      if (pid == 0) {
+        char *args[] = {command, NULL};
+        execvp(args[0], args);
+
         printf("%s: command not found\n", command);
+        exit(127);
+      } else if (pid > 0) {
+        int status;
+        waitpid(pid, &status, 0);
       }
     }
   }
+}
 
-  return 0;
+return 0;
 }
