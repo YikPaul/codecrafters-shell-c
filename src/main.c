@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
             if (status == 127) {
               printf("%s: command not found\n", command);
 }
-*/
+
       pid_t pid = fork();
 
       if (pid == 0) {
@@ -61,6 +61,31 @@ int main(int argc, char *argv[]) {
 
         printf("%s: command not found\n", command);
         exit(127);
+      } else if (pid > 0) {
+        int status;
+        waitpid(pid, &status, 0);
+      }*/
+
+      pid_t pid = fork();
+
+      if (pid == 0) {
+        char *args[100];
+        int i = 0;
+
+        char *token = strtok(command, " ");
+
+        while (token != NULL && i < 99) {
+          args[i++] = token;
+          token = strtok(NULL, " ");
+        }
+
+        args[i] = NULL;
+
+        execvp(args[0], args);
+
+        printf("%s: command not found\n", args[0]);
+        exit(127);
+
       } else if (pid > 0) {
         int status;
         waitpid(pid, &status, 0);
