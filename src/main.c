@@ -52,6 +52,9 @@ int main(int argc, char *argv[]) {
         printf("%s\n", pwd);
       }
       continue;
+    } else if (strcmp(command, "cd") == 0) {
+      if (chdir(command) == -1)
+        printf("cd: %s: command not found\n", command);
     }
     if (strncmp(command, "type ", 5) == 0) {
       if (strcmp(command + 5, "echo") == 0 ||
