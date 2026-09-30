@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -54,7 +55,7 @@ int main(int argc, char *argv[]) {
       continue;
     } else if (strcmp(command, "cd") == 0) {
       if (chdir(command) == -1)
-        printf("cd: %s: command not found\n", command);
+        fprintf(stderr, "cd: %s: %s\n", command, strerror(errno));
     }
     if (strncmp(command, "type ", 5) == 0) {
       if (strcmp(command + 5, "echo") == 0 ||
