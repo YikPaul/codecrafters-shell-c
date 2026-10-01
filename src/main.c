@@ -53,16 +53,22 @@ int main(int argc, char *argv[]) {
         printf("%s\n", pwd);
       }
       continue;
-    } else if (strncmp(command, "cd ", 3) == 0) {
-      if (chdir(command + 3) != 0) {
+    }
+
+    else if (strncmp(command, "cd ", 3) == 0) {
+      char *dir = command + 3;
+
+      if (strcmp(dir, "~") == 0) {
+        dir = getenv("HOME");
+      }
+
+      if (chdir(dir) != 0) {
         printf("cd: %s: No such file or directory\n", command + 3);
       }
 
-      if (strcmp(command + 3, "~") == 0) {
-        return chdir(getenv("HOME"));
-      }
       continue;
     }
+
     if (strncmp(command, "type ", 5) == 0) {
       if (strcmp(command + 5, "echo") == 0 ||
           strcmp(command + 5, "exit") == 0 ||
