@@ -57,6 +57,10 @@ int main(int argc, char *argv[]) {
       if (chdir(command + 3) != 0) {
         printf("cd: %s: No such file or directory\n", command + 3);
       }
+
+      if (strcmp(command + 3, "~") == 0) {
+        return chdir(getenv("HOME"));
+      }
       continue;
     }
     if (strncmp(command, "type ", 5) == 0) {
