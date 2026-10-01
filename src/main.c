@@ -53,9 +53,10 @@ int main(int argc, char *argv[]) {
         printf("%s\n", pwd);
       }
       continue;
-    } else if (strcmp(command, "cd") == 0) {
-      if (chdir(command) == -1) {
-        fprintf(stderr, "cd: %s: %s\n", command, strerror(errno));
+    } else if (strncmp(command, "cd ", 3) == 0) {
+      chdir(command + 3);
+      if (chdir(command + 3) != 0) {
+        printf("cd: %s: no such file or directory\n", command + 3);
       }
       continue;
     }
