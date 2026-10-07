@@ -58,17 +58,12 @@ int parse_command(char *command, char *args[]) {
   int in_single_quotes = 0;
   int in_double_quotes = 0;
   for (int i = 0; command[i] != '\0'; i++) {
-
     char c = command[i];
 
     /*
     *this is for handling the backslash
     *this treats every character outside the qoutes literally
     inside the quotes ,the backslash is treated literally
-    *
-    *
-    *
-    *
     */
     if (c == '\\' && !in_single_quotes && !in_double_quotes) {
       if (!arg_started) {
@@ -79,18 +74,36 @@ int parse_command(char *command, char *args[]) {
       if (command[i] != '\0') {
         command[out++] = command[i];
       }
-
       continue;
+      /*
+       *let us  now implemment the backslash inside the doble quotes
+       *here only two functions are performed ie it only escapes the backslash
+       * itself and the double quotes
+       *
+       *
+       **/
+      if (c == '\\' && in_double_quotes && !in_single_quotes) {
+        if (!arg_started) {
+          start = out;
+          arg_started = 1;
+        }
+        if (command[i + 1] == '"' || command[i + 1] == '\\') {
+          command[out++] = command[i + 1];
+          i++;
+        } else {
+
+          command[out++] = c;
+        }
+        continue;
+      }
     }
 
     /*
      * SINGLE QUOTE
-     *
      * ' changes between normal mode
      * and single-quote mode.
      */
     if (c == '\'' && !in_double_quotes) {
-
       /*
        * If this is the first thing in an
        * argument, remember where the
@@ -110,10 +123,7 @@ int parse_command(char *command, char *args[]) {
     }
     /*
      *handling of the double quotes
-     *
-     *
-     *
-     * */
+     */
     if (c == '"' && !in_single_quotes) {
       if (!arg_started) {
         start = out;
@@ -124,21 +134,17 @@ int parse_command(char *command, char *args[]) {
     }
     /*
      * WHITESPACE OUTSIDE QUOTES
-     *
      * A space separates arguments only
      * when we are NOT inside single quotes.
      */
+
     if (isspace((unsigned char)c) && !in_single_quotes && !in_double_quotes) {
 
       if (arg_started) {
-
         command[out++] = '\0';
-
         args[argc++] = command + start;
-
         arg_started = 0;
       }
-
       continue;
     }
 
@@ -146,12 +152,9 @@ int parse_command(char *command, char *args[]) {
      * NORMAL CHARACTER
      */
     if (!arg_started) {
-
       start = out;
-
       arg_started = 1;
     }
-
     command[out++] = c;
   }
 
@@ -159,9 +162,7 @@ int parse_command(char *command, char *args[]) {
    * Save the final argument.
    */
   if (arg_started) {
-
     command[out++] = '\0';
-
     args[argc++] = command + start;
   }
 
@@ -169,7 +170,6 @@ int parse_command(char *command, char *args[]) {
    * execvp() requires NULL at the end.
    */
   args[argc] = NULL;
-
   return argc;
 }
 
