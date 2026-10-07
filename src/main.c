@@ -75,28 +75,28 @@ int parse_command(char *command, char *args[]) {
         command[out++] = command[i];
       }
       continue;
-      /*
-       *let us  now implemment the backslash inside the doble quotes
-       *here only two functions are performed ie it only escapes the backslash
-       * itself and the double quotes
-       *
-       *
-       **/
-      if (c == '\\' && in_double_quotes) {
-        if (!arg_started) {
-          start = out;
-          arg_started = 1;
-        }
-        char next = command[i + 1];
-        if (next == '"' || next == '\\') {
-          command[out++] = next;
-          i++;
-        } else {
-
-          command[out++] = c;
-        }
-        continue;
+    }
+    /*
+     *let us  now implemment the backslash inside the doble quotes
+     *here only two functions are performed ie it only escapes the backslash
+     * itself and the double quotes
+     *
+     *
+     **/
+    if (c == '\\' && in_double_quotes) {
+      if (!arg_started) {
+        start = out;
+        arg_started = 1;
       }
+      char next = command[i + 1];
+      if (next == '"' || next == '\\') {
+        command[out++] = next;
+        i++;
+      } else {
+
+        command[out++] = c;
+      }
+      continue;
     }
 
     /*
