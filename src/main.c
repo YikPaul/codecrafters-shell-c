@@ -82,7 +82,7 @@ int parse_command(char *command, char *args[]) {
        *
        *
        **/
-      if (c == '\\' && in_double_quotes && !in_single_quotes) {
+      if (c == '\\' && in_double_quotes) {
         if (!arg_started) {
           start = out;
           arg_started = 1;
