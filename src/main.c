@@ -87,8 +87,9 @@ int parse_command(char *command, char *args[]) {
           start = out;
           arg_started = 1;
         }
-        if (command[i + 1] == '"' || command[i + 1] == '\\') {
-          command[out++] = command[i + 1];
+        char next = command[i + 1];
+        if (next == '"' || next == '\\') {
+          command[out++] = next;
           i++;
         } else {
 
