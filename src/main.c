@@ -62,6 +62,28 @@ int parse_command(char *command, char *args[]) {
     char c = command[i];
 
     /*
+    *this is for handling the backslash
+    *this treats every character outside the qoutes literally
+    inside the quotes ,the backslash is treated literally
+    *
+    *
+    *
+    *
+    */
+    if (c == '\\' && !in_single_quotes && !in_double_quotes) {
+      if (!arg_started) {
+        start = out;
+        arg_started = 1;
+      }
+      i++;
+      if (command[i] != '\0') {
+        command[out++] = command[i];
+      }
+
+      continue;
+    }
+
+    /*
      * SINGLE QUOTE
      *
      * ' changes between normal mode
