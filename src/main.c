@@ -139,6 +139,18 @@ int parse_command(char *command, char *args[]) {
      * when we are NOT inside single quotes.
      */
 
+    /*
+     *redirecting standard output to files
+     */
+    if (c == '>' && !in_single_quotes && !in_double_quotes) {
+      if (!arg_started) {
+        start = out;
+        arg_started = 1;
+      }
+      FILE *destination = fopen(args[i + 1], "w");
+      args[out++] = args[i];
+    }
+
     if (isspace((unsigned char)c) && !in_single_quotes && !in_double_quotes) {
 
       if (arg_started) {
