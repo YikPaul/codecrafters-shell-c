@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,23 +38,16 @@ void locate_x(char *command) {
 
 /*
  * Parse the command line.
- *
  * Example:
- *
  *     echo 'hello world'
- *
  * becomes:
- *
  *     args[0] = "echo"
  *     args[1] = "hello world"
  */
 int parse_command(char *command, char *args[]) {
-
   int argc = 0;
-
   int out = 0;
   int start = 0;
-
   int arg_started = 0;
   int in_single_quotes = 0;
   int in_double_quotes = 0;
@@ -133,26 +127,18 @@ int parse_command(char *command, char *args[]) {
       in_double_quotes = !in_double_quotes;
       continue;
     }
+
     /*
      * WHITESPACE OUTSIDE QUOTES
      * A space separates arguments only
      * when we are NOT inside single quotes.
      */
 
-    /*
-     *redirecting standard output to files
-     */
-    if (c == '>' && !in_single_quotes && !in_double_quotes) {
-      if (!arg_started) {
-        start = out;
-        arg_started = 1;
+    if ((isspace((unsigned char)c) || c == '>') && !in_single_quotes &&
+        !in_double_quotes) {
+      if (c == '>') {
+        args[argc++] = ">";
       }
-      FILE *destination = fopen(args[i + 1], "w");
-      args[out++] = args[i];
-    }
-
-    if (isspace((unsigned char)c) && !in_single_quotes && !in_double_quotes) {
-
       if (arg_started) {
         command[out++] = '\0';
         args[argc++] = command + start;
@@ -184,6 +170,19 @@ int parse_command(char *command, char *args[]) {
    */
   args[argc] = NULL;
   return argc;
+}
+
+/*
+ * HANDLING REDIREXTIOONS
+ */
+void redirect_stdout(char *file) {
+  int fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  if (fd == -1) {
+    perror("open");
+    exit(1);
+  }
+  dup2(fd, STDOUT_FILENO);
+  close(fd);
 }
 
 int main(int argc, char *argv[]) {
@@ -231,6 +230,19 @@ int main(int argc, char *argv[]) {
 
     if (arg_count == 0) {
       continue;
+    }
+
+    /*
+     * recognizing the parse command
+     * */
+    char *output_file = NULL;
+    for (int i = 0; i < arg_count; i++) {
+      if (strcmp(args[i], ">") == 0 && i + 1 < arg_count) {
+        output_file = args[i + 1];
+        args[i] = NULL;
+        arg_count = i;
+        break;
+      }
     }
 
     /*
@@ -360,6 +372,9 @@ int main(int argc, char *argv[]) {
       }
 
       else if (pid == 0) {
+        if (output_file != NULL) {
+          redirect_stdout(output_file);
+        }
 
         /*
          * Run external program.
