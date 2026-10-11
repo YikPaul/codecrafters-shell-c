@@ -9,6 +9,12 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#define USE_READLINE
+#ifdef USE_READLINE
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
+
 void locate_x(char *command) {
   char *path_env = getenv("PATH");
 
@@ -262,28 +268,32 @@ int main(int argc, char *argv[]) {
 
   while (1) {
 
-    char command[1024];
+    char *line;
 
-    /*
-     * Print shell prompt.
-     */
+#ifdef USE_READLINE
+    line = readline("$ ");
+#else
+    char command_buf[1024];
     printf("$ ");
-
-    /*
-     * Read command.
-     */
-    if (fgets(command, sizeof(command), stdin) == NULL) {
+    if (fgets(command_buf, sizeof(command_buf), stdin) == NULL) {
       break;
     }
-
-    /*
-     * Remove newline.
-     */
-    size_t len = strlen(command);
-
-    if (len > 0 && command[len - 1] == '\n') {
-      command[len - 1] = '\0';
+    size_t len = strlen(command_buf);
+    if (len > 0 && command_buf[len - 1] == '\n') {
+      command_buf[len - 1] = '\0';
     }
+    line = command_buf;
+#endif
+
+    char command[1024];
+    if (line == NULL) {
+      break;
+    }
+    strncpy(command, line, sizeof(command) - 1);
+    command[sizeof(command) - 1] = '\0';
+#ifdef USE_READLINE
+    free(line);
+#endif
 
     /*
      * Ignore empty input.
