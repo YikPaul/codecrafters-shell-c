@@ -37,12 +37,26 @@ void locate_x(char *command) {
 }
 
 /*
+ * Return the canonical token for a redirection operator.
+ * fd is 1 (stdout) or 2 (stderr); append selects >> over >.
+ */
+char *redirect_op(int fd, int append) {
+  if (fd == 2) {
+    return append ? "2>>" : "2>";
+  }
+  return append ? ">>" : ">";
+}
+
+/*
  * Parse the command line.
  * Example:
  *     echo 'hello world'
  * becomes:
  *     args[0] = "echo"
  *     args[1] = "hello world"
+ *
+ * Redirection operators are emitted as their own arguments
+ * (">", "2>", ">>", "2>>", ...) so that main() can handle them.
  */
 int parse_command(char *command, char *args[]) {
   int argc = 0;
@@ -55,10 +69,10 @@ int parse_command(char *command, char *args[]) {
     char c = command[i];
 
     /*
-    *this is for handling the backslash
-    *this treats every character outside the qoutes literally
-    inside the quotes ,the backslash is treated literally
-    */
+     *this is for handling the backslash
+     *this treats every character outside the qoutes literally
+     inside the quotes ,the backslash is treated literally
+     */
     if (c == '\\' && !in_single_quotes && !in_double_quotes) {
       if (!arg_started) {
         start = out;
@@ -128,17 +142,14 @@ int parse_command(char *command, char *args[]) {
       continue;
     }
 
+
+
     /*
      * WHITESPACE OUTSIDE QUOTES
      * A space separates arguments only
      * when we are NOT inside single quotes.
      */
-
-    if ((isspace((unsigned char)c) || c == '>') && !in_single_quotes &&
-        !in_double_quotes) {
-      if (c == '>') {
-        args[argc++] = ">";
-      }
+    if (isspace((unsigned char)c) && !in_single_quotes && !in_double_quotes) {
       if (arg_started) {
         command[out++] = '\0';
         args[argc++] = command + start;
@@ -173,16 +184,75 @@ int parse_command(char *command, char *args[]) {
 }
 
 /*
- * HANDLING REDIREXTIOONS
+ * =========================
+ * REDIRECTION HANDLING
+ * =========================
  */
-void redirect_stdout(char *file) {
-  int fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-  if (fd == -1) {
+static int saved_stdout = -1;
+static int saved_stderr = -1;
+
+static int redirect_to(const char *path, int fd, int append) {
+  int flags = O_WRONLY | O_CREAT | (append ? O_APPEND : O_TRUNC);
+  int newfd = open(path, flags, 0644);
+
+  if (newfd == -1) {
     perror("open");
-    exit(1);
+    return -1;
   }
-  dup2(fd, STDOUT_FILENO);
-  close(fd);
+
+  int saved = dup(fd);
+
+  if (saved == -1) {
+    perror("dup");
+    close(newfd);
+    return -1;
+  }
+
+  if (dup2(newfd, fd) == -1) {
+    perror("dup2");
+    close(newfd);
+    close(saved);
+    return -1;
+  }
+
+  close(newfd);
+
+  if (fd == STDOUT_FILENO) {
+    saved_stdout = saved;
+  } else if (fd == STDERR_FILENO) {
+    saved_stderr = saved;
+  }
+
+  return 0;
+}
+
+/*
+ * Apply the requested redirections to the shell process itself.
+ * They are undone later by restore_redirections(), which lets
+ * builtins keep writing to the terminal once they're done.
+ */
+int apply_redirections(char *out_file, int out_append, char *err_file,
+                       int err_append) {
+  if (out_file != NULL) {
+    redirect_to(out_file, STDOUT_FILENO, out_append);
+  }
+  if (err_file != NULL) {
+    redirect_to(err_file, STDERR_FILENO, err_append);
+  }
+  return (out_file != NULL || err_file != NULL) ? 1 : 0;
+}
+
+void restore_redirections(void) {
+  if (saved_stdout != -1) {
+    dup2(saved_stdout, STDOUT_FILENO);
+    close(saved_stdout);
+    saved_stdout = -1;
+  }
+  if (saved_stderr != -1) {
+    dup2(saved_stderr, STDERR_FILENO);
+    close(saved_stderr);
+    saved_stderr = -1;
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -233,17 +303,136 @@ int main(int argc, char *argv[]) {
     }
 
     /*
-     * recognizing the parse command
-     * */
-    char *output_file = NULL;
+     * =========================
+     * EXTRACT REDIRECTIONS
+     * =========================
+     * Walk the arguments, pull out any redirection operators
+     * (`>`, `>>`, `1>`, `1>>`, `2>`, `2>>`) in both space and
+     * attached forms (e.g. `2>/file`).
+     */
+    char *out_file = NULL;
+    char *err_file = NULL;
+    int out_append = 0;
+    int err_append = 0;
+    int w = 0;
+
     for (int i = 0; i < arg_count; i++) {
-      if (strcmp(args[i], ">") == 0 && i + 1 < arg_count) {
-        output_file = args[i + 1];
-        args[i] = NULL;
-        arg_count = i;
-        break;
+      char *a = args[i];
+
+      /* Check for attached form like "2>/file", "2>>file", ">file", ">>file" */
+      char *gt = strchr(a, '>');
+      if (gt != NULL && gt != a && (gt[-1] == '1' || gt[-1] == '2')) {
+        int is_stderr = (gt[-1] == '2');
+        int append = (gt[1] == '>');
+        if (append) {
+          /* filename starts after >> */
+          if (gt[2] != '\0') {
+            char *fname = gt + 2;
+            if (is_stderr) {
+              err_file = fname;
+              err_append = 1;
+            } else {
+              out_file = fname;
+              out_append = 1;
+            }
+          } else if (i + 1 < arg_count) {
+            /* space after >> */
+            if (is_stderr) {
+              err_file = args[i + 1];
+              err_append = 1;
+            } else {
+              out_file = args[i + 1];
+              out_append = 1;
+            }
+            i++;
+          }
+        } else {
+          if (gt[1] != '\0') {
+            char *fname = gt + 1;
+            if (is_stderr) {
+              err_file = fname;
+              err_append = 0;
+            } else {
+              out_file = fname;
+              out_append = 0;
+            }
+          } else if (i + 1 < arg_count) {
+            if (is_stderr) {
+              err_file = args[i + 1];
+              err_append = 0;
+            } else {
+              out_file = args[i + 1];
+              out_append = 0;
+            }
+            i++;
+          }
+        }
+        continue;
+      } else if (gt != NULL && gt == a) {
+        int append = (gt[1] == '>');
+        if (append) {
+          if (gt[2] != '\0') {
+            out_file = gt + 2;
+            out_append = 1;
+          } else if (i + 1 < arg_count) {
+            out_file = args[i + 1];
+            out_append = 1;
+            i++;
+          }
+        } else {
+          if (gt[1] != '\0') {
+            out_file = gt + 1;
+            out_append = 0;
+          } else if (i + 1 < arg_count) {
+            out_file = args[i + 1];
+            out_append = 0;
+            i++;
+          }
+        }
+        continue;
       }
+
+      int is_redir = strcmp(a, ">") == 0 || strcmp(a, "1>") == 0 ||
+                     strcmp(a, "2>") == 0 || strcmp(a, ">>") == 0 ||
+                     strcmp(a, "1>>") == 0 || strcmp(a, "2>>") == 0;
+
+      if (is_redir) {
+        if (i + 1 >= arg_count) {
+          break; /* dangling operator, ignore */
+        }
+
+        int is_stderr = (a[0] == '2');
+        int append = (strstr(a, ">>") != NULL);
+
+        if (is_stderr) {
+          err_file = args[i + 1];
+          err_append = append;
+        } else {
+          out_file = args[i + 1];
+          out_append = append;
+        }
+
+        i++; /* skip the filename */
+        continue;
+      }
+
+      args[w++] = a;
     }
+
+    args[w] = NULL;
+    arg_count = w;
+
+    if (arg_count == 0) {
+      continue;
+    }
+
+    /*
+     * Apply redirections once for every kind of command.
+     * Builtins write through the shell's own file descriptors,
+     * so the same mechanism works for them too.
+     */
+    int applied =
+        apply_redirections(out_file, out_append, err_file, err_append);
 
     /*
      * =========================
@@ -251,6 +440,9 @@ int main(int argc, char *argv[]) {
      * =========================
      */
     if (strcmp(args[0], "exit") == 0) {
+      if (applied) {
+        restore_redirections();
+      }
       break;
     }
 
@@ -271,8 +463,6 @@ int main(int argc, char *argv[]) {
       }
 
       printf("\n");
-
-      continue;
     }
 
     /*
@@ -283,8 +473,6 @@ int main(int argc, char *argv[]) {
     else if (strcmp(args[0], "cls") == 0 || strcmp(args[0], "clear") == 0) {
 
       printf("\033[2J\033[H");
-
-      continue;
     }
 
     /*
@@ -299,8 +487,6 @@ int main(int argc, char *argv[]) {
       if (getcwd(pwd, sizeof(pwd)) != NULL) {
         printf("%s\n", pwd);
       }
-
-      continue;
     }
 
     /*
@@ -311,24 +497,22 @@ int main(int argc, char *argv[]) {
     else if (strcmp(args[0], "cd") == 0) {
 
       if (arg_count < 2) {
-        continue;
+        /* nothing to do */
+      } else {
+        char *dir = args[1];
+
+        /*
+         * cd ~
+         */
+        if (strcmp(dir, "~") == 0) {
+          dir = getenv("HOME");
+        }
+
+        if (chdir(dir) != 0) {
+
+          printf("cd: %s: No such file or directory\n", args[1]);
+        }
       }
-
-      char *dir = args[1];
-
-      /*
-       * cd ~
-       */
-      if (strcmp(dir, "~") == 0) {
-        dir = getenv("HOME");
-      }
-
-      if (chdir(dir) != 0) {
-
-        printf("cd: %s: No such file or directory\n", args[1]);
-      }
-
-      continue;
     }
 
     /*
@@ -338,22 +522,18 @@ int main(int argc, char *argv[]) {
      */
     else if (strcmp(args[0], "type") == 0) {
 
-      if (arg_count < 2) {
-        continue;
+      if (arg_count >= 2) {
+        if (strcmp(args[1], "echo") == 0 || strcmp(args[1], "exit") == 0 ||
+            strcmp(args[1], "type") == 0 || strcmp(args[1], "cls") == 0 ||
+            strcmp(args[1], "clear") == 0 || strcmp(args[1], "pwd") == 0) {
+
+          printf("%s is a shell builtin\n", args[1]);
+
+        } else {
+
+          locate_x(args[1]);
+        }
       }
-
-      if (strcmp(args[1], "echo") == 0 || strcmp(args[1], "exit") == 0 ||
-          strcmp(args[1], "type") == 0 || strcmp(args[1], "cls") == 0 ||
-          strcmp(args[1], "clear") == 0 || strcmp(args[1], "pwd") == 0) {
-
-        printf("%s is a shell builtin\n", args[1]);
-
-      } else {
-
-        locate_x(args[1]);
-      }
-
-      continue;
     }
 
     /*
@@ -372,11 +552,10 @@ int main(int argc, char *argv[]) {
       }
 
       else if (pid == 0) {
-        if (output_file != NULL) {
-          redirect_stdout(output_file);
-        }
-
         /*
+         * Redirections were already applied to this process by
+         * the parent, so the child inherits them across execvp().
+         *
          * Run external program.
          */
         execvp(args[0], args);
@@ -399,6 +578,14 @@ int main(int argc, char *argv[]) {
 
         waitpid(pid, &status, 0);
       }
+    }
+
+    /*
+     * Undo redirections so the next prompt and builtins
+     * write to the terminal again.
+     */
+    if (applied) {
+      restore_redirections();
     }
   }
 

@@ -57,4 +57,4 @@ vcpkg_installed
 # Compiled binaries (CodeCrafters rejects pushes containing files > 1MB)
 main
 src/main
-*.exe
+*.exe/shell
