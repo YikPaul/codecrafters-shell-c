@@ -15,6 +15,36 @@
 #include <readline/history.h>
 #endif
 
+#ifdef USE_READLINE
+static char *completion_generator(const char *text, int state) {
+  static int idx;
+  static size_t len;
+  const char *builtins[] = {"echo", "exit", NULL};
+  if (state == 0) {
+    idx = 0;
+    len = strlen(text);
+  }
+  while (builtins[idx]) {
+    const char *cmd = builtins[idx++];
+    if (strncmp(cmd, text, len) == 0) {
+      char *result = malloc(strlen(cmd) + 2);
+      if (result == NULL) {
+        return NULL;
+      }
+      strcpy(result, cmd);
+      return result;
+    }
+  }
+  return NULL;
+}
+
+static char **completion_callback(const char *text, int start, int end) {
+  (void)start;
+  (void)end;
+  return rl_completion_matches(text, completion_generator);
+}
+#endif
+
 void locate_x(char *command) {
   char *path_env = getenv("PATH");
 
@@ -271,6 +301,7 @@ int main(int argc, char *argv[]) {
     char *line;
 
 #ifdef USE_READLINE
+    rl_attempted_completion_function = completion_callback;
     line = readline("$ ");
 #else
     char command_buf[1024];
