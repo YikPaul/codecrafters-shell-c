@@ -9,7 +9,17 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+/*
+ * Only use readline when its headers are actually available, so the
+ * program still compiles on systems without the readline dev package.
+ * CodeCrafters has readline, so completion is enabled there.
+ */
+#if defined(__has_include)
+#if __has_include(<readline/readline.h>)
 #define USE_READLINE
+#endif
+#endif
+
 #ifdef USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -292,7 +302,7 @@ void restore_redirections(void) {
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(void) {
 
   setbuf(stdout, NULL);
 
