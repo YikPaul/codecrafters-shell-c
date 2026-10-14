@@ -9,7 +9,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define USE_READLINE
 #ifdef USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -292,7 +291,7 @@ void restore_redirections(void) {
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(void) {
 
   setbuf(stdout, NULL);
 
