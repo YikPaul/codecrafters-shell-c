@@ -23,9 +23,7 @@
 #ifdef USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
-#endif
 
-#ifdef USE_READLINE
 static char *completion_generator(const char *text, int state) {
   static int idx;
   static size_t len;
@@ -188,8 +186,6 @@ int parse_command(char *command, char *args[]) {
       in_double_quotes = !in_double_quotes;
       continue;
     }
-
-
 
     /*
      * WHITESPACE OUTSIDE QUOTES
